@@ -1,6 +1,6 @@
 <mujoco model="golf_grass">
   <compiler angle="degree" autolimits="true"/>
-  <option timestep="0.001" gravity="0 0 -9.81"/>
+  <option timestep="0.002" gravity="0 0 -9.81"/>
 
   <visual>
     <headlight ambient="0.4 0.4 0.4" diffuse="0.6 0.6 0.6" specular="0.1 0.1 0.1"/>
@@ -11,39 +11,32 @@
     <!-- Sky -->
     <texture name="sky" type="skybox" builtin="gradient" rgb1="0.55 0.75 0.95" rgb2="0.9 0.95 1.0" width="512" height="3072"/>
 
-    <!-- Grass: flat green base with random darker/lighter speckles -->
+    <!-- Grass -->
     <texture name="grass_tex" type="2d" builtin="flat" rgb1="0.24 0.48 0.16" rgb2="0.30 0.58 0.20" mark="random" markrgb="0.15 0.35 0.10" random="0.25" width="512" height="512"/>
     <material name="grass_mat" texture="grass_tex" texuniform="true" texrepeat="40 40" reflectance="0" specular="0.05" shininess="0.05"/>
 
-    <!-- Golf ball -->
+    <!-- Golf ball material -->
     <material name="ball_mat" rgba="0.98 0.98 0.98 1" specular="0.6" shininess="0.6"/>
 
-    <!-- Optional: undulating terrain instead of a flat plane.
-         Needs a grayscale PNG (e.g. 128x128), then swap the floor geom below:
-    <hfield name="terrain" file="terrain.png" size="20 20 0.5 0.1"/>
-    <geom name="floor" type="hfield" hfield="terrain" material="grass_mat"/> -->
+    <!-- Scaled golf ball mesh -->
+    <mesh name="golf_ball_mesh" file="files/golf_ball.stl" scale="0.001 0.001 0.001"/>
   </asset>
-
-  <default>
-    <default class="grass">
-      <!-- friction = sliding, torsional, rolling. condim 6 enables all three.
-           Softer solref/solimp gives the slight "give" of turf. -->
-      <geom condim="6" friction="0.6 0.01 0.005" solref="0.02 1" solimp="0.9 0.95 0.001"/>
-    </default>
-  </default>
 
   <worldbody>
     <light name="sun" pos="0 0 20" dir="0 0 -1" directional="true" diffuse="0.9 0.9 0.85" specular="0.2 0.2 0.2" castshadow="true"/>
 
-    <!-- Grass floor: 50 m x 50 m, half-sizes given; third value is grid spacing -->
-    <geom name="floor" class="grass" type="plane" size="25 25 0.1" material="grass_mat"/>
+    <!-- Grass floor plane at Z = 0 -->
+    <geom name="floor" type="plane" size="25 25 0.1" material="grass_mat" friction="0.8 0.005 0.0001"/>
 
-    <!-- Test golf ball (radius 21.35 mm, mass 45.9 g) dropped from 1 m -->
-    <body name="golf_ball" pos="0 0 1">
+    <!-- Golf ball body starting slightly above ground (Z = 0.03 m) -->
+    <body name="golf_ball" pos="0 0 0.03">
       <freejoint name="ball_free"/>
-      <geom name="ball" type="sphere" size="0.02135" mass="0.0459" material="ball_mat" condim="6" friction="0.5 0.005 0.0005" solref="0.02 0.6" solimp="0.9 0.95 0.001"/>
+      
+      <!-- Combined visual & collision mesh geom -->
+      <geom name="ball_geom" type="mesh" mesh="golf_ball_mesh" material="ball_mat" mass="0.0459" friction="0.8 0.005 0.0001"/>
     </body>
 
-    <camera name="side" pos="2 -2.5 1" xyaxes="0.78 0.62 0 -0.2 0.25 0.95"/>
+    <!-- Close-up camera angle -->
+    <camera name="close_up" pos="0.2 -0.2 0.1" xyaxes="0.707 0.707 0 -0.408 0.408 0.816"/>
   </worldbody>
 </mujoco>
