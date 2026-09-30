@@ -1,4 +1,4 @@
-## Introduction
+# Introduction
 
 Consider a Golf player in the initial swing movement. The movement involves feet, legs, upper body, and a characteristic arm swing to make the club hit the ball (such that it reaches as close as possible to a given target (usually a hole in a green)). Figure 1 shows the chained sequence of movements that forms the swing.
 
@@ -6,7 +6,7 @@ Consider a Golf player in the initial swing movement. The movement involves feet
 
 The swing movement, the shape of the club, the speed at which the player’s body moves, all of them are critical to transmit to the ball the adequate force/torque.
 
-# Tasks
+## Tasks
 
 **Task 1** – Develop a MuJoCo XML model for the ensemble Golf player+club.
 
