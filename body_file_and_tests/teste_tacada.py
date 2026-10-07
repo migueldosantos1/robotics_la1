@@ -3,7 +3,7 @@ import math
 import mujoco
 import mujoco.viewer
 
-model = mujoco.MjModel.from_xml_path("main_v3.xml")
+model = mujoco.MjModel.from_xml_path("main_v5.xml")
 data = mujoco.MjData(model)
 
 # Ângulo entre os dois braços, com base na geometria do tronco e dos braços
@@ -53,7 +53,7 @@ with mujoco.viewer.launch_passive(model, data) as v:
         # Fase - 0 durante o delay inicial, entre 0 e 1 durante o moviemento, 1 após o final do movimento
         if t < DELAY_INICIAL:
             fase = 0
-        elif t > DELAY_INICIAL and t < DELAY_INICIAL + DURACAO:
+        elif t >= DELAY_INICIAL and t < DELAY_INICIAL + DURACAO:
             fase = (t - DELAY_INICIAL) / DURACAO
         else:
             fase = 1
@@ -77,3 +77,10 @@ with mujoco.viewer.launch_passive(model, data) as v:
         resto = model.opt.timestep - (time.time() - inicio)
         if resto > 0:
             time.sleep(resto)
+
+
+mujoco.mj_forward(model, data)
+print("contactos ativos:", data.ncon)
+for i in range(data.ncon):
+    c = data.contact[i]
+    print(model.geom(c.geom1).name, "colide com", model.geom(c.geom2).name)
