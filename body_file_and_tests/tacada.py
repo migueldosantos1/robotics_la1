@@ -12,10 +12,10 @@ data = mujoco.MjData(model)
 
 # Ângulo entre os dois braços, com base na geometria do tronco e dos braços
 ANGULO_BRACOS = math.asin(3 / 7)
-
+ANGULO_FLEXAO_COTOVELO = math.radians(-60)
 DELAY_INICIAL = 3 # Tempo para o robô se posicionar
 TEMPO_ESPERA = 1 # Esperar um pouco antes da tacada
-DURACAO = 0.2 # Tempo que a tacada demora
+DURACAO = 0.3 # Tempo que a tacada demora
 
 # Atuadores:
 act_rot_hip_z = model.actuator("act_rot_hip_z").id
@@ -23,29 +23,33 @@ act_rot_hip_y = model.actuator("act_rot_hip_y").id
 act_rot_hip_x = model.actuator("act_rot_hip_x").id
 act_left_arm_x = model.actuator("act_left_arm_x").id
 act_left_arm_y = model.actuator("act_left_arm_y").id
+act_left_elbow = model.actuator("act_left_elbow").id
 act_right_arm_x = model.actuator("act_right_arm_x").id
 act_right_arm_y = model.actuator("act_right_arm_y").id
+act_right_elbow = model.actuator("act_right_elbow").id
 act_wrist = model.actuator("act_wrist").id
 
-# Posições das juntas:
-adr_rot_hip_z = int(model.joint("rot_hip_z").qposadr[0])
-adr_rot_hip_y = int(model.joint("rot_hip_y").qposadr[0])
-adr_rot_hip_x = int(model.joint("rot_hip_x").qposadr[0])
-adr_left_arm_x = int(model.joint("left_arm_x").qposadr[0])
-adr_left_arm_y = int(model.joint("left_arm_y").qposadr[0])
-adr_right_arm_x = int(model.joint("right_arm_x").qposadr[0])
-adr_right_arm_y = int(model.joint("right_arm_y").qposadr[0])
-adr_wrist = int(model.joint("wrist").qposadr[0])
+try:
+    key_id = model.key("home").id
+    mujoco.mj_resetDataKeyframe(model, data, key_id)
+except Exception:
+    # Posições das juntas:
+    adr_rot_hip_z = int(model.joint("rot_hip_z").qposadr[0])
+    adr_rot_hip_y = int(model.joint("rot_hip_y").qposadr[0])
+    adr_rot_hip_x = int(model.joint("rot_hip_x").qposadr[0])
+    adr_left_arm_x = int(model.joint("left_arm_x").qposadr[0])
+    adr_left_arm_y = int(model.joint("left_arm_y").qposadr[0])
+    adr_right_arm_x = int(model.joint("right_arm_x").qposadr[0])
+    adr_right_arm_y = int(model.joint("right_arm_y").qposadr[0])
+    adr_wrist = int(model.joint("wrist").qposadr[0])
 
-# Posição inicial - tronco inclinado para a frente, braços em baixo, a olhar em frente
-data.qpos[adr_rot_hip_z] = 0.0
-data.qpos[adr_rot_hip_y] = math.radians(10)
-data.qpos[adr_rot_hip_x] = 0.0
-data.qpos[adr_left_arm_x] = -ANGULO_BRACOS
-data.qpos[adr_left_arm_y] = math.radians(-20)
-data.qpos[adr_right_arm_x] = ANGULO_BRACOS
-data.qpos[adr_right_arm_y] = math.radians(-20)
-data.qpos[adr_wrist] = -ANGULO_BRACOS
+    # Posição inicial - tronco inclinado para a frente, braços em baixo, a olhar em frente
+    data.qpos[adr_rot_hip_y] = math.radians(20)
+    data.qpos[adr_left_arm_x] = -ANGULO_BRACOS
+    data.qpos[adr_left_arm_y] = math.radians(0)
+    data.qpos[adr_right_arm_x] = ANGULO_BRACOS
+    data.qpos[adr_right_arm_y] = math.radians(0)
+    data.qpos[adr_wrist] = -ANGULO_BRACOS
 
 mujoco.mj_forward(model, data)
 
@@ -81,13 +85,15 @@ with mujoco.viewer.launch_passive(model, data) as v:
         # Os sinais dos atuadores são calculados através da combinação do valor estático inicial, da onda correspondente
         #  à etapa de preparação, e das ondas correspondentes ao movimento principal. 
         data.ctrl[act_rot_hip_z] = - math.radians(60)*prep + math.radians(120)*onda_1
-        data.ctrl[act_rot_hip_y] = math.radians(10) + math.radians(45)*onda_2
+        data.ctrl[act_rot_hip_y] = math.radians(20) + math.radians(35)*onda_2
         data.ctrl[act_rot_hip_x] = math.radians(20)*onda_1
         data.ctrl[act_left_arm_x] = -ANGULO_BRACOS
-        data.ctrl[act_left_arm_y] = -math.radians(45) -math.radians(75)*prep + math.radians(35)*onda_2
+        data.ctrl[act_left_arm_y] =  -math.radians(75)*prep + math.radians(35)*onda_2
         data.ctrl[act_right_arm_x] = ANGULO_BRACOS 
-        data.ctrl[act_right_arm_y] = -math.radians(45) -math.radians(75)*prep+ math.radians(35)*onda_2
+        data.ctrl[act_right_arm_y] =  -math.radians(75)*prep+ math.radians(35)*onda_2
         data.ctrl[act_wrist] = -ANGULO_BRACOS + (-math.radians(100)  * prep) + math.radians(150)*onda_1
+        data.ctrl[act_left_elbow] = ANGULO_FLEXAO_COTOVELO * prep * (1 - onda_2)
+        data.ctrl[act_right_elbow] = ANGULO_FLEXAO_COTOVELO * prep * (1 - onda_2)
 
         mujoco.mj_step(model, data)
         v.sync()
@@ -102,13 +108,13 @@ with mujoco.viewer.launch_passive(model, data) as v:
 
         # Rotação do tronco (segundo o eixo vertical) - começa a preparação em 0 e termina em -60; começa o swing em -60 e termina em 60
 
-        # Inclinação do tronco para a frente ou para trás - durante a preparação mantém-se em 10 graus (inclinação para a frente);
-        #  durante o swing aumenta desde 10 até 55 (quando bate na bola), regressando a 10 graus no final do movimento
+        # Inclinação do tronco para a frente ou para trás - durante a preparação mantém-se em 20 graus (inclinação para a frente);
+        #  durante o swing aumenta desde 20 até 55 (quando bate na bola), regressando a 20 graus no final do movimento
 
         # Inclinação lateral do tronco - nula até ao início do swing; começa o swing em 0 e termina em 20 graus, inclinado para a sua direita (X positivo)
 
         # Os braços mantêm o mesmo ãngulo entre si durante todo o movimento
-        # Quando ao ângulo que fazem com a vertical: começa a preparação em -45 e termina em -120, ou seja, 60 graus com a vertical positiva;
+        # Quanto ao ângulo que fazem com a vertical: começa a preparação em -45 e termina em -120, ou seja, 60 graus com a vertical positiva;
         #  começa o swing em 60, desce até aos 25 (quando bate na bola), e volta a subir até aos 60
 
         # Quando ao taco, este começa alinhado com o eixo X (de frente para o jogardor), terminando a preparação com um ângulo de 100 graus

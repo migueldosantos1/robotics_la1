@@ -1,7 +1,7 @@
 import mujoco
 import mujoco.viewer    
 
-model = mujoco.MjModel.from_xml_path("main_v5.xml")
+model = mujoco.MjModel.from_xml_path("main_v6.xml")
 data = mujoco.MjData(model)
 
 mujoco.mj_forward(model, data)
