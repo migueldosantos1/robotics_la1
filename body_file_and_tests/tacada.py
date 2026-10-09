@@ -13,9 +13,11 @@ data = mujoco.MjData(model)
 # Ângulo entre os dois braços, com base na geometria do tronco e dos braços
 ANGULO_BRACOS = math.asin(3 / 7)
 ANGULO_FLEXAO_COTOVELO = math.radians(-60)
+START = 3 # Tempo de espera até se começar a mover
 DELAY_INICIAL = 3 # Tempo para o robô se posicionar
 TEMPO_ESPERA = 1 # Esperar um pouco antes da tacada
-DURACAO = 0.3 # Tempo que a tacada demora
+DURACAO_SWING = 4 # Tempo que a tacada demora
+DELAY_FINAL = DELAY_INICIAL # Tempo para regressar à posição inicial
 
 # Atuadores:
 act_rot_hip_z = model.actuator("act_rot_hip_z").id
@@ -29,27 +31,17 @@ act_right_arm_y = model.actuator("act_right_arm_y").id
 act_right_elbow = model.actuator("act_right_elbow").id
 act_wrist = model.actuator("act_wrist").id
 
-try:
-    key_id = model.key("home").id
-    mujoco.mj_resetDataKeyframe(model, data, key_id)
-except Exception:
-    # Posições das juntas:
-    adr_rot_hip_z = int(model.joint("rot_hip_z").qposadr[0])
-    adr_rot_hip_y = int(model.joint("rot_hip_y").qposadr[0])
-    adr_rot_hip_x = int(model.joint("rot_hip_x").qposadr[0])
-    adr_left_arm_x = int(model.joint("left_arm_x").qposadr[0])
-    adr_left_arm_y = int(model.joint("left_arm_y").qposadr[0])
-    adr_right_arm_x = int(model.joint("right_arm_x").qposadr[0])
-    adr_right_arm_y = int(model.joint("right_arm_y").qposadr[0])
-    adr_wrist = int(model.joint("wrist").qposadr[0])
-
-    # Posição inicial - tronco inclinado para a frente, braços em baixo, a olhar em frente
-    data.qpos[adr_rot_hip_y] = math.radians(20)
-    data.qpos[adr_left_arm_x] = -ANGULO_BRACOS
-    data.qpos[adr_left_arm_y] = math.radians(0)
-    data.qpos[adr_right_arm_x] = ANGULO_BRACOS
-    data.qpos[adr_right_arm_y] = math.radians(0)
-    data.qpos[adr_wrist] = -ANGULO_BRACOS
+# Posições das juntas:
+adr_rot_hip_z = int(model.joint("rot_hip_z").qposadr[0])
+adr_rot_hip_y = int(model.joint("rot_hip_y").qposadr[0])
+adr_rot_hip_x = int(model.joint("rot_hip_x").qposadr[0])
+adr_left_arm_x = int(model.joint("left_arm_x").qposadr[0])
+adr_left_arm_y = int(model.joint("left_arm_y").qposadr[0])
+adr_left_elbow = int(model.joint("left_elbow").qposadr[0])
+adr_right_arm_x = int(model.joint("right_arm_x").qposadr[0])
+adr_right_arm_y = int(model.joint("right_arm_y").qposadr[0])
+adr_right_elbow = int(model.joint("right_elbow").qposadr[0])
+adr_wrist = int(model.joint("wrist").qposadr[0])
 
 mujoco.mj_forward(model, data)
 
@@ -58,42 +50,83 @@ with mujoco.viewer.launch_passive(model, data) as v:
         inicio = time.time()
         t = data.time
 
+        # ETAPA ZERO
+        if t < 0:
+            zero = 0
+        elif t < START:
+            zero = math.sin(math.pi * (t / START) / 2)
+        else:
+            zero = 1
+
         # PRIMEIRA ETAPA - PREPARAÇÃO
         # O robô está inicialmente com o tronco um pouco inclinado para a frente, e com os braços em baixo
         # Ao longo desta etapa inicial, ele coloca-se lentamente em posição para efetuar o swing
         # Esta preparação é feita com uma função cosseno, que começa em 0 e se move suavemente para 1
-        if t < DELAY_INICIAL:
-            prep = 0.5 * (1 - math.cos(math.pi * t / DELAY_INICIAL))
+        if t < START:
+            prep = 0
+        elif t < DELAY_INICIAL + START:
+            t_t0 = t - START
+            prep = math.sin(math.pi * (t_t0 / DELAY_INICIAL) / 2)
         else:
             prep = 1
 
         # SEGUNDA ETAPA - TEMPO DE ESPERA
         # O robô fica simplesmente à espera durante um certo período de tempo antes de efetuar o swing
-        if t < DELAY_INICIAL + TEMPO_ESPERA:
-            fase = 0
 
         # TERCEIRA ETAPA - SWING
         # O robô executa o swing, que está descrito em detalhe no final
-        elif t < DELAY_INICIAL + TEMPO_ESPERA + DURACAO:
-            fase = (t - (DELAY_INICIAL + TEMPO_ESPERA)) / DURACAO
+        t0 = START + DELAY_INICIAL + TEMPO_ESPERA
+        if t < t0:
+            onda_swing = 0
+            onda_swing_sec = 0
+        elif t < t0 + DURACAO_SWING:
+            t_t0 = t - t0
+            onda_swing = math.sin(math.pi * (t_t0 / DURACAO_SWING) / 2) # Movimento principal do swing (tronco)
+            onda_swing_sec = math.sin(math.pi * (t_t0 / DURACAO_SWING)) # Movimento secundário do swing (antebraços)
         else:
-            fase = 1
+            onda_swing = 1
+            onda_swing_sec = 0
 
-        onda_1 = math.sin(math.pi * fase / 2) # Função que substitui a sinusoide por ser um pouco mais agressiva
-        onda_2 = math.sin(math.pi * fase) # Para movimentos de dois sentidos (subida e descida dos braços)
+        # QUARTA ETAPA - VOLTA AO 0
+        # O robô volta para a posição inicial
+        t1 = START + DELAY_INICIAL + TEMPO_ESPERA + DURACAO_SWING + TEMPO_ESPERA
+        if t < t1:
+            finish = 0
+        elif t < t1 + DELAY_FINAL:
+            t_t0 = t - t1
+            finish = math.sin(math.pi * (t_t0 / DELAY_FINAL) / 2)
+        else:
+            finish = 1
+
+        # Fator multiplicativo de retorno à posição neutra (1 durante o swing, reduz até 0 no finish)
+        fator_posicao = 1 - finish
 
         # Os sinais dos atuadores são calculados através da combinação do valor estático inicial, da onda correspondente
         #  à etapa de preparação, e das ondas correspondentes ao movimento principal. 
-        data.ctrl[act_rot_hip_z] = - math.radians(60)*prep + math.radians(120)*onda_1
-        data.ctrl[act_rot_hip_y] = math.radians(20) + math.radians(35)*onda_2
-        data.ctrl[act_rot_hip_x] = math.radians(20)*onda_1
-        data.ctrl[act_left_arm_x] = -ANGULO_BRACOS
-        data.ctrl[act_left_arm_y] =  -math.radians(75)*prep + math.radians(35)*onda_2
-        data.ctrl[act_right_arm_x] = ANGULO_BRACOS 
-        data.ctrl[act_right_arm_y] =  -math.radians(75)*prep+ math.radians(35)*onda_2
-        data.ctrl[act_wrist] = -ANGULO_BRACOS + (-math.radians(100)  * prep) + math.radians(150)*onda_1
-        data.ctrl[act_left_elbow] = ANGULO_FLEXAO_COTOVELO * prep * (1 - onda_2)
-        data.ctrl[act_right_elbow] = ANGULO_FLEXAO_COTOVELO * prep * (1 - onda_2)
+        # data.ctrl[act_rot_hip_z] = (-math.radians(90) * prep + math.radians(180) * onda_swing) * fator_posicao
+        # data.ctrl[act_rot_hip_y] = (math.radians(15) * onda_swing_sec) * fator_posicao
+        # data.ctrl[act_rot_hip_x] = (math.radians(20) * onda_swing) * fator_posicao
+        # data.ctrl[act_left_arm_x] = -ANGULO_BRACOS * fator_posicao
+        # data.ctrl[act_left_arm_y] = (-math.radians(75) * prep + math.radians(35) * onda_swing_sec) * fator_posicao
+        # data.ctrl[act_right_arm_x] = ANGULO_BRACOS * fator_posicao
+        # data.ctrl[act_right_arm_y] = (-math.radians(75) * prep + math.radians(35) * onda_swing_sec) * fator_posicao
+        # data.ctrl[act_wrist] = ( (-math.radians(20) * prep) +  math.radians(-40)*onda_swing) * fator_posicao
+        # data.ctrl[act_left_elbow] = (ANGULO_FLEXAO_COTOVELO * prep ) * fator_posicao
+        # data.ctrl[act_right_elbow] = (ANGULO_FLEXAO_COTOVELO * prep ) * fator_posicao
+
+        data.ctrl[act_rot_hip_z] = (-math.radians(90) * prep + math.radians(180) * onda_swing) * fator_posicao
+        data.ctrl[act_rot_hip_y] = math.radians(40)*zero + (math.radians(20) * onda_swing) * fator_posicao
+        data.ctrl[act_rot_hip_x] = 0
+        data.ctrl[act_left_arm_x] = 0
+        data.ctrl[act_left_arm_y] = 0
+        data.ctrl[act_right_arm_x] = 0
+        data.ctrl[act_right_arm_y] = 0
+        data.ctrl[act_wrist] = 0
+        data.ctrl[act_left_elbow] = 0
+        data.ctrl[act_right_elbow] = 0
+
+
+
 
         mujoco.mj_step(model, data)
         v.sync()
