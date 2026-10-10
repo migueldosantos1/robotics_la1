@@ -24,7 +24,7 @@
 
         <!-- Definir a luz do sol e o chão de relva (com atrito) -->
         <light name="sun" pos="0 0 20" dir="0 0 -1" directional="true" diffuse="0.9 0.9 0.85" specular="0.2 0.2 0.2" castshadow="true"/>
-        <geom name="floor" type="plane" size="25 25 0.1" material="grass_mat" friction="0.8 0.01 0.1" condim="6"/>
+        <geom name="floor" type="plane" size="50 50 0.1" material="grass_mat" friction="0.8 0.01 0.1" condim="6"/>
 
         <!-- O corpo do robô começa aqui -->
         <body name="main_body" pos="0 0 0">
@@ -143,11 +143,11 @@
 
         <!-- Estaca pequena que segura a bola -->
         <body>
-            <geom type="cylinder" fromto="1.30 0 0 1.30 0 0.18" size="0.01"/>
+            <geom type="cylinder" fromto="1.25 0 0 1.25 0 0.2" size="0.01"/>
         </body>
         
         <!-- Bola de golf -->
-        <body pos="1.30 0 0.25">
+        <body pos="1.25 0 0.25">
             <geom type="sphere" size="0.045" mass="0.01" friction="0.8 0.01 0.01" condim="6"/>
             <joint type="free" pos="0 0 0"/>
         </body>
