@@ -1,0 +1,209 @@
+<mujoco model="main">
+
+    <!-- Definições para o compilador - fazer com que o MUJOCO utilize graus em vez de radianos, 
+         permitir limites automáticos (por conveniência), e definir o valor da aceleração gravítica-->
+    <compiler angle="degree" autolimits="true"/>
+    <option gravity="0 0 -9.81"/>
+
+    <!-- Criar luz ambiente -->
+    <visual>
+        <headlight ambient="0.5 0.5 0.5" diffuse="0.5 0.5 0.5" specular="0.1 0.1 0.1"/>
+    </visual>
+
+    <asset>
+        <!-- Definir um gradiente para o céu -->
+        <texture name="sky" type="skybox" builtin="gradient" rgb1="0.55 0.75 0.95" rgb2="0.9 0.95 1.0" width="512" height="3072"/>
+
+        <!-- Definir textura para o chão de relva -->
+        <texture name="grass_tex" type="2d" builtin="checker" rgb1="0.20 0.45 0.10" rgb2="0.25 0.50 0.15" width="512" height="512"/>
+        <material name="grass_mat" texture="grass_tex" texrepeat="40 40"/>
+
+        <!-- Golf ball material -->
+        <material name="ball_mat" rgba="0.98 0.98 0.98 1" specular="0.6" shininess="0.6"/>
+
+        <!-- Scaled golf ball mesh -->
+        <mesh name="golf_ball_mesh" file="golf_ball.stl" scale="0.0009 0.0009 0.0009"/>
+    </asset>
+
+
+    <worldbody>
+
+        <!-- Definir a luz do sol e o chão de relva (com atrito) -->
+        <light name="sun" pos="0 0 20" dir="0 0 -1" directional="true" diffuse="0.9 0.9 0.85" specular="0.2 0.2 0.2" castshadow="true"/>
+        <geom name="floor" type="plane" size="50 50 0.1" material="grass_mat" friction="0.8 0.01 0.1" condim="6"/>
+
+        <!-- O corpo do robô começa aqui -->
+        <body name="main_body" pos="0 0 0">
+
+            <!-- Perna esquerda - deslocada para Y = -0.1 -->
+            <geom name="left_leg" type="ellipsoid" pos="0 -0.1 0.5" size="0.1 0.08 0.5" mass="14"/>
+
+            <!-- Perna direita - deslocada para Y = 0.1 -->
+            <geom name="right_leg" type="ellipsoid" pos="0 0.1 0.5" size="0.1 0.08 0.5" mass="14"/>
+
+            <!-- Pelvis -->
+            <geom name="pelvis" type="cylinder" fromto="0 -0.07 0.875 0 0.07 0.875" size="0.125" mass="4"/>
+            <geom name="pelvis_s1" type="sphere" pos="0 -0.07 0.875" size="0.125" mass="3"/>
+            <geom name="pelvis_s2" type="sphere" pos="0 0.07 0.875" size="0.125" mass="3"/>
+
+            <!-- Junta esférica para a anca + parte superior do corpo -->
+            <body name="hip_body" pos="0 0 1.0">
+
+                <!-- Junta esférica para a anca com 3 DoF. Cada junta tem um alcance associado.-->
+                <joint name="rot_hip_x" type="hinge" axis="1 0 0" range="-30 30" damping="0.5"/>
+                <joint name="rot_hip_y" type="hinge" axis="0 1 0" range="-15 50" damping="0.5"/>
+                <joint name="rot_hip_z" type="hinge" axis="0 0 1" range="-80 80" damping="0.5"/>
+                <geom type="sphere" pos="0 0 0.1" size="0.1" mass="5"/>
+
+                <!-- Parte superior do corpo -->
+                <body name="upper_body" pos="0 0 0.15">
+
+                    <geom name="torso" type="ellipsoid" pos="0 0 0.225" size="0.10 0.2 0.225" mass="10"/>
+                    <geom name="torax" type="cylinder" fromto="0 -0.15 0.3 0 0.15 0.3" size="0.09" mass="5"/>
+                    
+                    <!-- Cabeça -->
+                    <body name="head" pos="0 0 0.55">
+                        <geom name="head" type="ellipsoid" size="0.1 0.1 0.125" mass ="5"/>
+                        <geom name="right_eyeball" type="sphere" size="0.04" mass="0" pos="0.06 -0.04 0.04" rgba="1 1 1 1"/>
+                        <geom name="left_eyeball" type="sphere" size="0.04" mass="0" pos="0.06 0.04 0.04" rgba="1 1 1 1"/>
+                        <geom name="right_pupil" type="sphere" size="0.015" mass="0" pos="0.08 -0.060 0.052" rgba="0 0 0 1"/>
+                        <geom name="left_pupil" type="sphere" size="0.015" mass="0" pos="0.08 0.060 0.035" rgba="0 0 0 1"/>
+                    </body>
+                    
+                    <!-- Braço esquerdo -->
+                    <!-- Por ordem: Esfera do ombro -> Braço e esfera pequena do ombro -> Antebraço -> Esfera da mão -->
+                    <body name="left_arm_whole" pos="0 0.15 0.3">
+
+                        <geom name="left_shoulder" type="sphere" size="0.09" mass="0.5"/>
+
+                        <body name="left_arm" pos="0 0.15 0">
+
+                            <!-- 2 DoF para cada braço -->
+                            <joint name="left_arm_y" type="hinge" axis="0 1 0" pos="0 0 0" range="-180 30" damping="20.0" />
+                            <joint name="left_arm_x" type="hinge" axis="1 0 0" pos="0 0 0" range="-30 180" damping="20.0" />
+
+                            <geom name="left_arm_cyl" type="cylinder" size="0.04 0.20" mass="2.5" pos="0 0 -0.20"/>
+                            <geom name="left_arm_sph" type="sphere" size="0.06" mass="0.5" pos="0 0 0"/>
+            
+                            <!-- Antebraço -->
+                            <body name="left_forearm" pos="0 0 -0.40" >
+                                <geom type="sphere" size="0.06" mass="0.5" pos="0 0 0"/>
+                                <geom type="cylinder" size="0.04 0.15" mass="1.5" pos="0 0 -0.15"/>
+                                <joint name="left_elbow" type="ball" damping="15.0"/>
+
+                                <body name="left_hand" pos="0 0 -0.3">
+                                    <geom name="left_hand_sph" type="sphere" size="0.04" mass="0.1" pos="0 0 0"/>
+
+                                    <!-- Este é o braço que NÃO SEGURA o taco, apenas tem o site para depois conectar com a outra mão -->
+                                    <site name="left_hand_site" size="0.01"/>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+
+
+                    <!-- Braço direito -->
+                    <!-- Por ordem: Esfera do ombro -> Braço e esfera pequena do ombro -> Antebraço -> Esfera da mão -->
+                    <body name="right_arm_whole" pos="0 -0.15 0.3">
+
+                        <geom name="right_shoulder" type="sphere" size="0.09" mass="0.5"/>
+
+                        <body name="right_arm" pos="0 -0.15 0">
+
+                            <!-- 2 DoF para cada braço -->
+                            <joint name="right_arm_y" type="hinge" axis="0 1 0" pos="0 0 0" range="-180 30" damping="2.0"/>
+                            <joint name="right_arm_x" type="hinge" axis="1 0 0" pos="0 0 0" range="-180 30" damping="2.0"/>
+                            
+                            <geom name="right_arm_cyl" type="cylinder" size="0.04 0.20" mass="2.5" pos="0 0 -0.20"/>
+                            <geom name="right_arm_sph" type="sphere" size="0.06" mass="0.5" pos="0 0 0"/>
+
+                            <!-- Antebraço -->
+                            <body name="right_forearm" pos="0 0 -0.40">
+                                <geom name="right_forearm_sph" type="sphere" size="0.06" mass="0.5" pos="0 0 0"/>
+                                <geom name="right_forearm_arm" type="cylinder" size="0.04 0.15" mass="1.5" pos="0 0 -0.15"/>
+
+                                <joint name="right_elbow" type="hinge" axis="0 1 0" range="-120 0" damping="15.0"/>
+
+                                <body name="right_wrist" pos="0 0 -0.3">
+                                    <geom name="right_hand" type="sphere" size="0.04" mass="0.1"/>
+
+                                    <!-- Este é o braço que SEGURA o taco, introduziu-se a junta do pulso, onde é preso o taco -->
+                                    <site name="right_hand_site" pos="0 0 0" size="0.01" rgba="1 0 0 1"/>
+                                    
+                                    <!-- Articulação do pulso -->
+                                    <joint name="wrist_y" type="hinge" axis="0 1 0" pos="0 0 0" range="-90 90" damping="0.5"/>
+                                    <joint name="wrist_x" type="hinge" axis="1 0 0" pos="0 0 0" range="-90 90" damping="0.5"/>
+                                                          
+                                    <!-- Taco - estilo putter, tamanho e peso realistas -->
+                                    <body name="club" euler="0 0 180">
+                                        <geom name="club_handle" type="cylinder" size="0.02 0.4" mass="0.5" pos="0 0 -0.4" rgba="0.4 0.4 0.4 1"/>
+                                        <geom name="club_head" mass="0.35" type="box" size="0.04 0.02 0.15" rgba="0.4 0.4 0.4 1" euler="0 90 0" pos="-0.08  0 -0.80"/>
+                                    </body>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+
+        <!-- Estaca pequena que segura a bola -->
+        <body>
+            <geom type="cylinder" fromto="1.25 0 0 1.25 0 0.2" size="0.01"/>
+        </body>
+        
+        <!-- Bola de golf -->
+        <body pos="1.205 -0.045 0.25">
+            <geom type="mesh" mesh="golf_ball_mesh" mass="0.01" friction="0.8 0.01 0.01" condim="6"/>
+            <joint type="free" pos="0 0 0"/>
+        </body>
+        
+        <!-- Câmara, para colocar a janela de visualização num local adequado -->
+        <camera name="fixed_cam" pos="20 -2 1" euler="45 0 0" mode="fixed"/>
+
+    </worldbody>
+
+    <!-- Evitar colisões entre o próprio corpo do robô (e o taco), já que as duas mãos estão uma em cima da outra a segurar o taco -->
+    <contact>
+        <exclude body1="left_forearm" body2="right_forearm"/>
+        <exclude body1="left_forearm" body2="right_wrist"/>
+        <exclude body1="left_forearm" body2="club"/>
+        <exclude body1="left_hand" body2="right_forearm"/>
+        <exclude body1="left_hand" body2="right_wrist"/>
+        <exclude body1="left_hand" body2="club"/>
+        <exclude body1="right_arm" body2="right_wrist"/>
+        <exclude body1="right_arm" body2="club"/>
+        <exclude body1="left_arm" body2="right_arm"/>
+        <exclude body1="left_arm" body2="right_forearm"/>
+        <exclude body1="left_arm" body2="right_wrist"/>
+        <exclude body1="left_arm" body2="club"/>
+        <exclude body1="right_arm" body2="left_forearm"/>
+        <exclude body1="right_arm" body2="left_hand"/>
+    </contact>
+
+    <!-- Esta equality constraint apenas é ativada no script de Python, para que o modelo possa ser 
+          visualizado normalmente, sem forças que provocam movimento estranho no início -->
+    <equality>
+        <connect name="hands_connected" site1="left_hand_site" site2="right_hand_site" active="false"/>
+    </equality>
+
+    <!-- Atuadores, valores de kp e kv ajustados por tentativas -->
+    <!-- kp tem de ser muito elevado para acompanhar os movimentos rápidos e de elevada amplitude -->
+    <!-- kv tem de ser elevado para evitar oscilações -->
+    <actuator>
+        <position name="act_rot_hip_z" joint="rot_hip_z" kp="50000" kv="100"/>
+        <position name="act_rot_hip_y" joint="rot_hip_y" kp="1000000" kv="100"/>
+        <position name="act_rot_hip_x" joint="rot_hip_x" kp="10000" kv="100"/>
+
+        <position name="act_left_arm_y"  joint="left_arm_y"  kp="1000" kv="100"/>
+        <position name="act_left_arm_x"  joint="left_arm_x"  kp="1000" kv="100"/>
+        <position name="act_right_arm_y" joint="right_arm_y" kp="10000" kv="100"/>
+        <position name="act_right_arm_x" joint="right_arm_x" kp="10000" kv="100"/>
+
+        <position name="act_right_elbow" joint="right_elbow" kp="10000" kv="100"/>
+        <position name="act_left_elbow" joint="left_elbow" kp="10000" kv="100"/>
+
+        <position name="act_wrist_y" joint="wrist_y" kp="10000" kv="100"/>
+        <position name="act_wrist_x" joint="wrist_x" kp="10000" kv="100"/>
+    </actuator>
+</mujoco>
