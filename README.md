@@ -10,7 +10,7 @@ pip install mujoco numpy
 
 - **`main_final.xml`** — modelo MuJoCo do jogador, taco e bola.
 - **`golf_ball.stl`** — malha 3D da bola, usada pelo modelo.
-- - **`dof_demonstracoes.py`** — simula uma breve demonstração dos graus de liberdade que o modelo possui.
+- **`dof_demonstracoes.py`** — simula uma breve demonstração dos graus de liberdade que o modelo possui.
 - **`tacada_final.py`** — corre a tacada completa, com visualização.
 - **`tacada_perturbacoes.py`** — a mesma tacada, com ruído aplicado aos DOF do jogador (Task 2).
 
