@@ -2,6 +2,7 @@ import time
 import math
 import mujoco
 import mujoco.viewer
+import numpy as np
 import os
 
 folder = os.path.dirname(os.path.abspath(__file__))
@@ -51,6 +52,15 @@ eq_maos = model.equality("hands_connected").id
 model.eq_solref[eq_maos] = [0.001, 1.0]
 model.eq_solimp[eq_maos] = [0.99, 0.99, 0.001, 0.5, 2]
 
+# Medição da distância percorrida pela bola, a partir do site "tee_marker" (no XML)
+ball_joint_id = [j for j in range(model.njnt) if model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE][0]
+ball_body_id = model.jnt_bodyid[ball_joint_id]
+adr_vel_bola = model.jnt_dofadr[ball_joint_id]
+tee_marker_id = model.site("tee_marker").id
+
+INSTANTE_IMPACTO = DELAY_INICIAL + TEMPO_ESPERA + DURACAO
+JA_IMPRIMIU = False
+
 # Posição inicial do robô:
 # Cabeça e tronco a olhar em frente, ligeiramente inclinados para a frente
 # Braços esticados e em baixo, com um ângulo de 45 graus em relação ao eixo vertical
@@ -93,6 +103,7 @@ with mujoco.viewer.launch_passive(model, data) as v:
         if t < t_aux:
             posicao_inicial()
             t = data.time
+            JA_IMPRIMIU = False
         t_aux = t
 
         # PRIMEIRA ETAPA - PREPARAÇÃO
@@ -133,6 +144,17 @@ with mujoco.viewer.launch_passive(model, data) as v:
 
         mujoco.mj_step(model, data)
         v.sync()
+
+        # Mede e imprime a distância percorrida pela bola, uma única vez por tacada,
+        # assim que a bola estabiliza (velocidade pequena) depois do impacto
+        if not JA_IMPRIMIU and t > INSTANTE_IMPACTO:
+            vel_bola = np.linalg.norm(data.qvel[adr_vel_bola: adr_vel_bola + 3])
+            if vel_bola < 0.05:
+                tee_pos = data.site_xpos[tee_marker_id]
+                ball_pos = data.xpos[ball_body_id]
+                distancia = np.linalg.norm(ball_pos[:2] - tee_pos[:2])
+                print(f"distancia percorrida: {distancia:.3f} m")
+                JA_IMPRIMIU = True
 
         # Mantém o tempo real (o programa pausa durante o tempo que sobra após os cálculos para esse passo)
         resto = model.opt.timestep - (time.time() - inicio)

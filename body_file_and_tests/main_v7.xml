@@ -150,6 +150,7 @@
         <!-- Estaca pequena que segura a bola -->
         <body>
             <geom type="cylinder" fromto="1.25 0 0 1.25 0 0.2" size="0.01"/>
+            <site name="tee_marker" pos="1.25 0 0.2" size="0.01" rgba="1 0 0 0.3"/>
         </body>
         
         <!-- Bola de golf -->
@@ -158,6 +159,7 @@
             <joint type="free" pos="0 0 0"/>
         </body>
         
+
         <!-- Câmara, para colocar a janela de visualização num local adequado -->
         <camera name="fixed_cam" pos="20 -2 1" euler="45 0 0" mode="fixed"/>
 
@@ -206,4 +208,5 @@
         <position name="act_wrist_y" joint="wrist_y" kp="10000" kv="100"/>
         <position name="act_wrist_x" joint="wrist_x" kp="10000" kv="100"/>
     </actuator>
+
 </mujoco>
