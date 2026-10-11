@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 folder = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(folder, "main_v7.xml")
+file_path = os.path.join(folder, "main_final.xml")
 
 model = mujoco.MjModel.from_xml_path(file_path)
 data = mujoco.MjData(model)
