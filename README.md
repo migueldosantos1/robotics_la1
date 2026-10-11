@@ -12,12 +12,14 @@ pip install mujoco numpy
 - **`golf_ball.stl`** — malha 3D da bola, usada pelo modelo.
 - **`tacada_final.py`** — corre a tacada completa, com visualização.
 - **`tacada_perturbacoes.py`** — a mesma tacada, com ruído aplicado aos DOF do jogador (Task 2).
+- **`dof_demonstracoes.py`** — simula uma breve demonstração dos graus de liberdade que o modelo possui
 
 ## Como correr
 
 ```bash
 python3 tacada_final.py
 python3 tacada_perturbacoes.py
+python3 dof_demonstracoes.py
 ```
 
 Correr a partir desta pasta (os scripts procuram o `main_final.xml`).
