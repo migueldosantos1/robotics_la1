@@ -1,18 +1,18 @@
-# Simulação de uma tacada de golfe em MuJoCo
+# Simulation of a golf swing in MuJoCo
 
-## Pacotes necessários
+## Necessary libraries
 
 ```bash
 pip install mujoco numpy
 ```
 
-## Ficheiros
+## Files
 
-- **`main_final.xml`** — modelo MuJoCo do jogador, taco e bola.
-- **`golf_ball.stl`** — malha 3D da bola, usada pelo modelo.
-- **`dof_demonstracoes.py`** — simula uma breve demonstração dos graus de liberdade que o modelo possui.
-- **`tacada_final.py`** — corre a tacada completa, com visualização.
-- **`tacada_perturbacoes.py`** — a mesma tacada, com ruído aplicado aos DOF do jogador (Task 2).
+- **`main_final.xml`** — MuJoCo model of the player, club and golf ball.
+- **`golf_ball.stl`** — 3D mesh of the golf ball, used by the model.
+- **`dof_demonstracoes.py`** — simulates a brief demonstration of the degrees of freedoom of this model.
+- **`tacada_final.py`** — visualization model of the golf swing.
+- **`tacada_perturbacoes.py`** — same script with sinusoidal perturbation for disturbance comprehension.
 
 ## Como correr
 
@@ -22,4 +22,4 @@ python3 tacada_final.py
 python3 tacada_perturbacoes.py
 ```
 
-Correr a partir desta pasta (os scripts procuram o `main_final.xml`).
+Run from this folder (the scripts use `main_final.xml`).
