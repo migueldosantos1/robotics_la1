@@ -17,3 +17,5 @@ In your answer/solution, ensure that the XML MuJoCo model is duly commented and 
 **Task 2** – Design a set of tests that can be run under either the Simulate App in the MuJoCo software or using the Python environment, to show how realistic the model is. Run the simulation on these tests. Consider the existence of disturbances in each degree-of-freedom (dof), e.g., the wrist of the player being shaky.
 
 **Task 3** – Write a short (one A4 page max) comment on the results obtained. Emphasize the good points of your results but do not hide the rest!
+
+## DONE
