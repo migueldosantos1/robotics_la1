@@ -14,7 +14,7 @@ pip install mujoco numpy
 - **`tacada_final.py`** — visualization model of the golf swing.
 - **`tacada_perturbacoes.py`** — same script with sinusoidal perturbation for disturbance comprehension.
 
-## Como correr
+## How to Run
 
 ```bash
 python3 dof_demonstracoes.py
