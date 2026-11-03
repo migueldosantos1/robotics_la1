@@ -1,0 +1,34 @@
+
+
+from math import cos, sin
+
+
+T01 = [cos(theta1), -sin(theta1), 0, 0,
+       sin(theta1), cos(theta1), 0, 0,
+       0, 0, 1, 243.3,
+       0, 0, 0, 1]
+
+T12 = [cos(-90 + theta2), -sin(-90 + theta2), 0, 0,
+       0, 0, 1, 0,
+       -sin(-90 + theta2), -cos(-90 + theta2), 0, 0,
+       0, 0, 0, 1]
+
+T23 = [cos(-90 + theta3), -sin(-90 + theta3), 0, 200,
+       -sin(-90 + theta3), -cos(-90 + theta3), 0, 0,
+       0, 0, -1, 0,
+       0, 0, 0, 1]
+
+T34 = [cos(theta4), -sin(theta4), 0, 87,
+       0, 0, -1, 227.6,
+       sin(theta4), cos(theta4), 0, 0,
+       0, 0, 0, 1]
+
+T34 = [cos(theta5), -sin(theta5), 0, 0,
+       0, 0, -1, 0,
+       sin(theta5), cos(theta5), 0, 0,
+       0, 0, 0, 1]
+
+T34 = [cos(theta6), -sin(theta6), 0, 0,
+       0, 0, 1, 61.5,
+       -sin(theta6), -cos(theta6), 0, 0,
+       0, 0, 0, 1]
