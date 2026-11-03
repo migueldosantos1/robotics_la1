@@ -1,34 +1,64 @@
+import numpy as np
+import math
+from math import sin, cos
 
+# Configura o NumPy para esconder os números flutuantes residuais muito pequenos (ex: 6.12e-17 vira 0)
+np.set_printoptions(suppress=True, precision=4)
 
-from math import cos, sin
+# Definição dos ângulos das juntas (em radianos)
+theta1 = 0
+theta2 = 0
+theta3 = 0
+theta4 = 0
+theta5 = 0
+theta6 = 0
 
+# Declaração direta com np.array([ ... ])
+T01 = np.array([
+    [cos(theta1), -sin(theta1), 0, 0],
+    [sin(theta1), cos(theta1), 0, 0],
+    [0, 0, 1, 243.3],
+    [0, 0, 0, 1]
+])
 
-T01 = [cos(theta1), -sin(theta1), 0, 0,
-       sin(theta1), cos(theta1), 0, 0,
-       0, 0, 1, 243.3,
-       0, 0, 0, 1]
+T12 = np.array([
+    [cos((math.radians(-90) + theta2)), -sin((math.radians(-90) + theta2)), 0, 0],
+    [0, 0, 1, 0],
+    [-sin((math.radians(-90) + theta2)), -cos((math.radians(-90) + theta2)), 0, 0],
+    [0, 0, 0, 1]
+])
 
-T12 = [cos(-90 + theta2), -sin(-90 + theta2), 0, 0,
-       0, 0, 1, 0,
-       -sin(-90 + theta2), -cos(-90 + theta2), 0, 0,
-       0, 0, 0, 1]
+T23 = np.array([
+    [cos((math.radians(-90) + theta3)), -sin((math.radians(-90) + theta3)), 0, 200],
+    [-sin((math.radians(-90) + theta3)), -cos((math.radians(-90) + theta3)), 0, 0],
+    [0, 0, -1, 0],
+    [0, 0, 0, 1]
+])
 
-T23 = [cos(-90 + theta3), -sin(-90 + theta3), 0, 200,
-       -sin(-90 + theta3), -cos(-90 + theta3), 0, 0,
-       0, 0, -1, 0,
-       0, 0, 0, 1]
+T34 = np.array([
+    [cos(theta4), -sin(theta4), 0, 87],
+    [0, 0, -1, -227.6],
+    [sin(theta4), cos(theta4), 0, 0],
+    [0, 0, 0, 1]
+])
 
-T34 = [cos(theta4), -sin(theta4), 0, 87,
-       0, 0, -1, 227.6,
-       sin(theta4), cos(theta4), 0, 0,
-       0, 0, 0, 1]
+T45 = np.array([
+    [cos(theta5), -sin(theta5), 0, 0],
+    [0, 0, -1, 0],
+    [sin(theta5), cos(theta5), 0, 0],
+    [0, 0, 0, 1]
+])
 
-T34 = [cos(theta5), -sin(theta5), 0, 0,
-       0, 0, -1, 0,
-       sin(theta5), cos(theta5), 0, 0,
-       0, 0, 0, 1]
+T56 = np.array([
+    [cos(theta6), -sin(theta6), 0, 0],
+    [0, 0, 1, 61.5],
+    [-sin(theta6), -cos(theta6), 0, 0],
+    [0, 0, 0, 1]
+])
 
-T34 = [cos(theta6), -sin(theta6), 0, 0,
-       0, 0, 1, 61.5,
-       -sin(theta6), -cos(theta6), 0, 0,
-       0, 0, 0, 1]
+# 3. Multiplicação das Matrizes usando o operador '@'
+# Isto calcula a transformação total da base (0) até à ferramenta (6)
+T06 = T01 @ T12 @ T23 @ T34 @ T45 @ T56
+
+print("=== Matriz de Transformação Total (T06) ===")
+print(T06)
