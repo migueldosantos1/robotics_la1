@@ -1,14 +1,11 @@
 import numpy as np
+# Configura o NumPy para esconder os números flutuantes residuais muito pequenos (ex: 6.12e-17 vira 0)
+np.set_printoptions(suppress=True, precision=4)
+
 import math
 from math import sin, cos
 
-
-
 def robot_dynamics(theta1, theta2, theta3, theta4, theta5, theta6):
-       # Configura o NumPy para esconder os números flutuantes residuais muito pequenos (ex: 6.12e-17 vira 0)
-       np.set_printoptions(suppress=True, precision=4)
-
-       # Declaração direta com np.array([ ... ])
        T01 = np.array([
        [cos(theta1), -sin(theta1), 0, 0],
        [sin(theta1), cos(theta1), 0, 0],
@@ -58,7 +55,7 @@ def robot_dynamics(theta1, theta2, theta3, theta4, theta5, theta6):
 
 
 def tip_position(q_deg):
-    T06 = robot_dynamics(np.radians(q_deg))          
+    T06 = robot_dynamics(*np.radians(q_deg))          
     x, y, z = T06[:3, 3] # Extrai a posição (x, y, z) da matriz de transformação T06
     roll, pitch, yaw = rot_to_rpy(T06[:3, :3])
     return np.array([x, y, z, roll, pitch, yaw])

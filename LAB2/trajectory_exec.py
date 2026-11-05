@@ -3,20 +3,16 @@ import numpy as np
 from xarm.wrapper import XArmAPI
 from trajectory_def import traj, T as T_SWING
 
-IP = '192.168.1.113'
-SLOW = 5.0        # fator de esticar o tempo: começa a 5, depois 2, depois 1
+IP = '192.168.1.158'
+SLOW = 5.0        # fator de esticar o tempo: começa a 5, depois 2, depois 1 (PARA TESTE)
 V_MAX = 500       # mm/s (limite do fabricante, confirma no manual)
 RADIUS = 5        # mm, raio de blending (confirma o significado na doc do SDK)
 
-# Definição da função que gera os vários pontos da tragetória -> Devolve o pto. do instante t
-def traj(t):
-    """Da Task 2: devolve [x, y, z, roll, pitch, yaw] (mm, graus) no instante t."""
-    raise NotImplementedError
 
-T, N = 3.0, 80    # duração (s) e nº de waypoints (exemplo)
-T *= SLOW
+N = 80 # nº de waypoints
+T = T_SWING * SLOW # duração real (esticada)
 ts = np.linspace(0, T, N) # time samples -> array com os valores de t espaçados T (s) N vezes
-P = np.array([traj(t / SLOW) for t in ts])    # o perfil mantém a forma, só estica o tempo
+P = np.array([traj(t / SLOW) for t in ts]) # Array com os pontos da trajetória
 
 # Preparação do robô
 arm = XArmAPI(IP)
