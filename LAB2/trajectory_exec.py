@@ -1,6 +1,7 @@
 import time
 import numpy as np
 from xarm.wrapper import XArmAPI
+from trajectory_def import traj, T as T_SWING
 
 IP = '192.168.1.113'
 SLOW = 5.0        # fator de esticar o tempo: começa a 5, depois 2, depois 1

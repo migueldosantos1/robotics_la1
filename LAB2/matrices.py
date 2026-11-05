@@ -8,14 +8,6 @@ def robot_dynamics(theta1, theta2, theta3, theta4, theta5, theta6):
        # Configura o NumPy para esconder os números flutuantes residuais muito pequenos (ex: 6.12e-17 vira 0)
        np.set_printoptions(suppress=True, precision=4)
 
-       # Definição dos ângulos das juntas (em radianos)
-       theta1 = 0
-       theta2 = 0
-       theta3 = 0
-       theta4 = 0
-       theta5 = 0
-       theta6 = 0
-
        # Declaração direta com np.array([ ... ])
        T01 = np.array([
        [cos(theta1), -sin(theta1), 0, 0],
