@@ -9,7 +9,7 @@ TH_BACK, TH_FWD, TH_IMP = 25.0, 30.0, 2.0   # backswing, follow-through, ângulo
 T     = 1.0                            # duração do swing (s)
 
 # --- Geometria fixa (calculada uma vez) ---
-d  = np.array([np.cos(np.radians(PSI)), np.sin(np.radians(PSI)), 0.0])  # direção horizontal da tacada
+d  = np.array([np.sin(np.radians(PSI)), np.cos(np.radians(PSI)), 0.0])  # direção horizontal da tacada
 ez = np.array([0.0, 0.0, 1.0])                                          # vertical
 th_imp = np.radians(TH_IMP)
 C  = B - L * (np.sin(th_imp) * d - np.cos(th_imp) * ez)   # pivô: faz o TCP passar na bola em th_imp
