@@ -1,7 +1,7 @@
 import numpy as np
 
 # --- Parâmetros (mm, graus, s) ---
-B     = np.array([280.0, 0.0, 80.0])   # posição da bola
+B     = np.array([320.0, 0.0, 80.0])   # posição da bola
 L     = 140.0                          # raio do arco (comprimento do pêndulo)
 DELTA = 10.0                           # shaft lean (graus)
 PSI   = 0.0                            # direção da tacada no plano horizontal (0 = +x)

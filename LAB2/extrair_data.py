@@ -14,14 +14,14 @@ from xarm.wrapper import XArmAPI
 from matrices import tip_position
 from trajectory_def import traj, T
 
-IP    = '192.168.1.113'
+IP    = '192.168.1.158'
 N_IK  = 40                     # nº de pontos da trajetória para a Task 4
 SPEED = 20                     # deg/s nos movimentos da validação (devagar!)
 SLOW_LEVELS = [5, 2, 1]        # fatores de esticar o tempo (5 = 5x mais lento)
 N_WP    = 80                   # nº de waypoints da tacada
 V_MAX   = 500                  # mm/s, limite do TCP (confirma no manual)
 V_MIN   = 10                   # mm/s, velocidade mínima enviada ao set_position
-RADIUS  = 5                    # mm, raio de blending (confirma na doc do SDK)
+RADIUS  = 5                    # mm, raio de blending (confirmado na doc do SDK)
 MAX_JUMP = 20                  # graus; salto de junta entre pontos da IK que consideramos suspeito
 CONFIGS = [                    # juntas em graus; confirma que o espaço está livre antes de correr
     [0, 0, 0, 0, 0, 0],
@@ -40,11 +40,11 @@ def pose_error(p_des, p_calc):  # calculada - desejada; mm e graus
     return e
 
 # ---------------- Task 4: IK do robô ----------------
-def collect_ik(arm):
+def collect_ik(arm): # Serve para correr e guardar as inverse kinematics do robô - logging
     ts = np.linspace(0, T, N_IK)
     poses = np.array([traj(t) for t in ts])
     q_ik, codes = [], []
-    for pose in poses:
+    for pose in poses: #
         code, q = arm.get_inverse_kinematics([float(v) for v in pose],
                                              input_is_radian=False, return_is_radian=False)
         codes.append(code)
