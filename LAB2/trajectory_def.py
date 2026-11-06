@@ -23,4 +23,4 @@ def traj(t):
     # Definição da função que gera os vários pontos da tragetória -> Devolve o pto. do instante t
     th = np.radians(-TH_BACK) + np.radians(TH_BACK + TH_FWD) * min_jerk(t / T)  # ângulo do pêndulo
     p  = C + L * (np.sin(th) * d - np.cos(th) * ez)                              # posição no arco
-    return np.array([*p, 180.0, DELTA - np.degrees(th), PSI])                    # orientação (forma fechada)
+    return np.array([*p, 180.0, DELTA - np.degrees(th), 90 - PSI])               # orientação (forma fechada)
