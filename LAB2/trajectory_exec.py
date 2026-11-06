@@ -13,6 +13,7 @@ N = 80 # nº de waypoints
 T = T_SWING * SLOW # duração real (esticada)
 ts = np.linspace(0, T, N) # time samples -> array com os valores de t espaçados T (s) N vezes
 P = np.array([traj(t / SLOW) for t in ts]) # Array com os pontos da trajetória
+print(P)
 
 # Preparação do robô
 arm = XArmAPI(IP)
