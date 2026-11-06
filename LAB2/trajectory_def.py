@@ -1,7 +1,7 @@
 import numpy as np
 
 # Parâmetros globais da trajetória da tacada
-T = 2.0       # Duração total reduzida (mais rápido, mas controlado)
+T = 3.0       # Duração total reduzida (mais rápido, mas controlado)
 PSI = 90.0    # Direção transversal (eixo Y)
 
 def traj(t):

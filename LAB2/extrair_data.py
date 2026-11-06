@@ -15,10 +15,10 @@ from matrices import tip_position
 from trajectory_def import traj, T
 
 IP    = '192.168.1.158'
-N_IK  = 40                     # nº de pontos da trajetória para a Task 4
+N_IK  = 20                     # nº de pontos da trajetória para a Task 4
 SPEED = 20                     # deg/s nos movimentos da validação (devagar!)
 SLOW_LEVELS = [5, 2, 1]        # fatores de esticar o tempo (5 = 5x mais lento)
-N_WP    = 80                   # nº de waypoints da tacada
+N_WP    = 20                   # nº de waypoints da tacada
 V_MAX   = 500                  # mm/s, limite do TCP (confirma no manual)
 V_MIN   = 10                   # mm/s, velocidade mínima enviada ao set_position
 RADIUS  = 5                    # mm, raio de blending (confirmado na doc do SDK)
