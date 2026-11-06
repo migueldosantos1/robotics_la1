@@ -12,7 +12,7 @@ import sys, time, threading
 import numpy as np
 from xarm.wrapper import XArmAPI
 from matrices import tip_position
-from trajectory_def import traj, T
+from trajectory_def import traj, T, ALPHA
 
 IP    = '192.168.1.158'
 N_IK  = 20                     # nº de pontos da trajetória para a Task 4
@@ -133,7 +133,7 @@ def run_all_levels(arm):
         if r == "s": continue
         if not run_trajectory(arm, slow):
             print("Houve um problema; pára aqui e vê o que aconteceu antes de continuar."); break
-        # arm.set_position("0,0,0,0,0,0", speed=50, mvacc=200, wait=True)  # voltar à posição inicial
+        
 
 if __name__ == "__main__":
     if "--analyze" in sys.argv:
@@ -154,6 +154,8 @@ if __name__ == "__main__":
             print("\nATENÇÃO: a IK falhou nalgum ponto ou tem saltos grandes (possível singularidade).")
             if input("Escreve 'sim' para correr a tacada mesmo assim: ").strip().lower() != "sim":
                 sys.exit()
+        arm.set_servo_angle(angle=[ALPHA, 30, 30, 0, 30, 0], speed=SPEED, mvacc=100,
+                    wait=True, is_radian=False)
         run_all_levels(arm)
     except KeyboardInterrupt:
         arm.set_state(4); print("Interrompido: robô parado.")
