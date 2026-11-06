@@ -4,15 +4,16 @@ from xarm.wrapper import XArmAPI
 from trajectory_def import traj, T as T_SWING
 
 IP = '192.168.1.158'
-SLOW = 5.0        # fator de esticar o tempo: começa a 5, depois 2, depois 1 (PARA TESTE)
-V_MAX = 500       # mm/s (limite do fabricante, confirma no manual)
+SLOW = 1.0        # fator de esticar o tempo: começa a 5, depois 2, depois 1 (PARA TESTE)
+V_MAX = 200       # mm/s (limite do fabricante, confirma no manual)
 RADIUS = 5        # mm, raio de blending (confirma o significado na doc do SDK)
 
 
-N = 80 # nº de waypoints
+N = 20 # nº de waypoints
 T = T_SWING * SLOW # duração real (esticada)
 ts = np.linspace(0, T, N) # time samples -> array com os valores de t espaçados T (s) N vezes
 P = np.array([traj(t / SLOW) for t in ts]) # Array com os pontos da trajetória
+print(P)
 
 # Preparação do robô
 arm = XArmAPI(IP)
