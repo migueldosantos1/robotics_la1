@@ -2,19 +2,27 @@
 Sessão de laboratório (Lite 6):
   1) recolhe os dados da IK do robô ao longo da trajetória (Task 4)  -> o robô NÃO se mexe
   2) valida a FK (Task 1): move o robô a algumas configurações e compara com tip_position
+  3) executa a tacada (Task 3) com SLOW = 5, 2, 1 e regista a pose real
 
 Correr no laboratório:   python session_data.py
+Só a tacada:             python session_data.py --traj-only
 Analisar em casa:        python session_data.py --analyze      (usa ik_data.npz, não precisa do robô)
 """
-import sys, time
+import sys, time, threading
 import numpy as np
 from xarm.wrapper import XArmAPI
 from matrices import tip_position
 from trajectory_def import traj, T
 
-IP    = '192.168.1.158'  # IP do robô no laboratório
-N_IK  = 80                     # nº de pontos da trajetória para a Task 4
+IP    = '192.168.1.113'
+N_IK  = 40                     # nº de pontos da trajetória para a Task 4
 SPEED = 20                     # deg/s nos movimentos da validação (devagar!)
+SLOW_LEVELS = [5, 2, 1]        # fatores de esticar o tempo (5 = 5x mais lento)
+N_WP    = 80                   # nº de waypoints da tacada
+V_MAX   = 500                  # mm/s, limite do TCP (confirma no manual)
+V_MIN   = 10                   # mm/s, velocidade mínima enviada ao set_position
+RADIUS  = 5                    # mm, raio de blending (confirma na doc do SDK)
+MAX_JUMP = 20                  # graus; salto de junta entre pontos da IK que consideramos suspeito
 CONFIGS = [                    # juntas em graus; confirma que o espaço está livre antes de correr
     [0, 0, 0, 0, 0, 0],
     [30, 20, 40, 0, 20, 15],
@@ -43,8 +51,13 @@ def collect_ik(arm):
         q_ik.append(list(q[:6]) if code == 0 else [np.nan] * 6)
         if code != 0:
             print("IK falhou (código", code, ") em", np.round(pose, 1))
-    np.savez("ik_data.npz", ts=ts, poses=poses, q_ik=np.array(q_ik), codes=np.array(codes))
+    q_ik = np.array(q_ik)
+    np.savez("ik_data.npz", ts=ts, poses=poses, q_ik=q_ik, codes=np.array(codes))
     print("Guardado ik_data.npz")
+    ok = all(c == 0 for c in codes)
+    jump = np.nanmax(np.abs(np.diff(q_ik, axis=0))) if ok else np.nan
+    print(f"Verificação: IK ok em todos os pontos: {ok} | maior salto de junta entre pontos: {jump:.1f}°")
+    return ok and jump <= MAX_JUMP
 
 def analyze_ik(path="ik_data.npz"):
     d = np.load(path)
@@ -74,6 +87,53 @@ def validate_fk(arm):
     np.save("fk_validation.npy", np.array(rows))      # colunas: q(6) | robô(6) | FK(6) | dif(6)
     print("Guardado fk_validation.npy")
 
+
+# ---------------- Task 3: executar a tacada ----------------
+def run_trajectory(arm, slow):
+    Tt = T * slow
+    ts = np.linspace(0, Tt, N_WP)
+    P = np.array([traj(t / slow) for t in ts])          # mesma forma, tempo esticado
+    dt = ts[1] - ts[0]
+    speeds = [float(np.clip(np.linalg.norm(P[i, :3] - P[i-1, :3]) / dt, V_MIN, V_MAX)) for i in range(1, N_WP)]
+    print(f"SLOW={slow}: duração esperada {Tt:.1f} s | velocidade TCP máx. pedida {max(speeds):.0f} mm/s")
+
+    code = arm.set_position(*[float(v) for v in P[0]], speed=50, mvacc=200, wait=True)   # ponto inicial
+    if code != 0:
+        print("Erro a ir ao ponto inicial:", code); return False
+
+    log, stop = [], threading.Event()
+    t0 = time.time()
+    def logger():                                        # regista a pose real durante o movimento
+        while not stop.is_set():
+            log.append([time.time() - t0, *arm.position[:6], *arm.angles[:6]])
+            time.sleep(0.02)
+    th = threading.Thread(target=logger, daemon=True); th.start()
+
+    ok = True
+    for i in range(1, N_WP):
+        code = arm.set_position(*[float(v) for v in P[i]], speed=speeds[i-1], mvacc=2000,
+                                radius=RADIUS, wait=False)
+        if code != 0:
+            print(f"Falhou no ponto {i}, código {code}"); arm.set_state(4); ok = False; break
+    time.sleep(0.3)
+    while ok and arm.get_is_moving() and time.time() - t0 < Tt + 15:
+        time.sleep(0.05)
+    time.sleep(0.3)
+    stop.set(); th.join()
+    print(f"Duração real: {time.time() - t0:.1f} s | erro: {arm.error_code} | aviso: {arm.warn_code}")
+    np.savez(f"traj_run_slow{slow}.npz", ts=ts, desired=P,
+             log=np.array(log))                          # log: t | x y z roll pitch yaw | j1..j6
+    print(f"Guardado traj_run_slow{slow}.npz")
+    return ok and arm.error_code == 0
+
+def run_all_levels(arm):
+    for slow in SLOW_LEVELS:
+        r = input(f"\nCorrer a tacada com SLOW={slow}? Mão no botão de emergência. [Enter = sim | s = saltar | q = terminar] ").strip().lower()
+        if r == "q": break
+        if r == "s": continue
+        if not run_trajectory(arm, slow):
+            print("Houve um problema; pára aqui e vê o que aconteceu antes de continuar."); break
+
 if __name__ == "__main__":
     if "--analyze" in sys.argv:
         analyze_ik(); sys.exit()
@@ -81,10 +141,20 @@ if __name__ == "__main__":
     arm.clean_warn(); arm.clean_error()
     arm.motion_enable(True); arm.set_mode(0); arm.set_state(0)
     print("TCP offset atual do robô:", arm.tcp_offset, "(para a validação deve ser [0,0,0,0,0,0])")
-    collect_ik(arm)                                    # sem movimento
-    analyze_ik()
-    input("\nPróximo passo MOVE o robô. Zona livre e mão perto do botão de emergência? Enter para continuar... ")
-    validate_fk(arm)
-    input("\nTacada. Zona livre e mão perto do botão de emergência? Enter para continuar... ")
-    
-    arm.disconnect()
+    try:
+        if "--traj-only" not in sys.argv:
+            safe = collect_ik(arm)                         # sem movimento
+            analyze_ik()
+            input("\nO próximo passo MOVE o robô (validação da FK). Zona livre? Enter para continuar... ")
+            validate_fk(arm)
+        else:
+            safe = True
+        if not safe:
+            print("\nATENÇÃO: a IK falhou nalgum ponto ou tem saltos grandes (possível singularidade).")
+            if input("Escreve 'sim' para correr a tacada mesmo assim: ").strip().lower() != "sim":
+                sys.exit()
+        run_all_levels(arm)
+    except KeyboardInterrupt:
+        arm.set_state(4); print("Interrompido: robô parado.")
+    finally:
+        arm.disconnect()
