@@ -133,6 +133,7 @@ def run_all_levels(arm):
         if r == "s": continue
         if not run_trajectory(arm, slow):
             print("Houve um problema; pára aqui e vê o que aconteceu antes de continuar."); break
+        # arm.set_position("0,0,0,0,0,0", speed=50, mvacc=200, wait=True)  # voltar à posição inicial
 
 if __name__ == "__main__":
     if "--analyze" in sys.argv:
