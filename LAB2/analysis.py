@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+from scipy.spatial import cKDTree
+
 from matrices import tip_position
+from trajectory_def import traj, T
 
 def normalize(a):
-    # Normalizar a diferença de ângulos para o intervalo -180, 180
     return (np.asarray(a, float) + 180.0) % 360.0 - 180.0
 
 def post_processing(file_path="traj_run_slow1.npz"):
@@ -20,40 +22,52 @@ def post_processing(file_path="traj_run_slow1.npz"):
     q_actual = log[:, 7:13] # Angulos das juntas reais
 
     # Aplicar a cinemática direta às juntas reais
-    fk_reconstructed = np.array([tip_position(q) for q in q_actual])
+    dk_reconstructed = np.array([tip_position(q) for q in q_actual])
 
     # Interpolação do SciPy para alinhar o log assíncrono com a grelha de tempo desejada (ts_desired)
     # Necessário por causa das pequenas diferenças entre os intervalos definidos perfeitos e os registados
-    interp_fk = interp1d(t_real, fk_reconstructed, axis=0, bounds_error=False, fill_value="extrapolate")
+    interp_dk = interp1d(t_real, dk_reconstructed, axis=0, bounds_error=False, fill_value="extrapolate")
     interp_robot = interp1d(t_real, robot_cartesian_logged, axis=0, bounds_error=False, fill_value="extrapolate")
 
     # Depois da interpolação, já dá para extrair os valores nos tempos ts_derired
-    calc_poses_at_ts = interp_fk(ts_desired)
+    calc_poses_at_ts = interp_dk(ts_desired)
     robot_poses_at_ts = interp_robot(ts_desired)
 
-    # Erro entre a trajetória planeada e a trajetória que o robô seguiu na realidade
+    # Erro entre a trajetória desejada e a trajetória que o robô seguiu na realidade
     err_total = calc_poses_at_ts - desired_poses
     err_total[:, 3:] = normalize(err_total[:, 3:]) # Normalizar erros de orientação
     pos_error_total = np.linalg.norm(err_total[:, :3], axis=1) # Erro euclidiano em mm
 
     # Erro entre a posição obtida pela cinemática direta e a posição que o robô diz que está a fazer
-    err_fk_vs_robot = calc_poses_at_ts - robot_poses_at_ts
-    err_fk_vs_robot[:, 3:] = normalize(err_fk_vs_robot[:, 3:])
-    pos_error_fk_robot = np.linalg.norm(err_fk_vs_robot[:, :3], axis=1)
-
+    err_dk_vs_robot = calc_poses_at_ts - robot_poses_at_ts
+    err_dk_vs_robot[:, 3:] = normalize(err_dk_vs_robot[:, 3:])
+    pos_error_dk_robot = np.linalg.norm(err_dk_vs_robot[:, :3], axis=1)
 
     print(f"Resultados para o ficheiro \"{file_path}\":")
     print(f"Erro de posição médio (desejado vs DK): {np.mean(pos_error_total):.2f} mm")
     print(f"Erro de posição máximo (desejado vs DK): {np.max(pos_error_total):.2f} mm")
-    print(f"Erro DK vs pose interna do robô (média): {np.mean(pos_error_fk_robot):.2f} mm")
+    print(f"Erro DK vs pose interna do robô (média): {np.mean(pos_error_dk_robot):.2f} mm")
 
+    # Distância à trajetória desejada (ignora o timing)
+    tt = np.linspace(0, T, 1000)
+    dense = np.array([traj(t) for t in tt])[:, :3]
+    d_path = cKDTree(dense).query(dk_reconstructed[:, :3])[0]
+    print(f"\nDistância média ao caminho: {d_path.mean():.2f} mm")
+    print(f"Distância máxima ao caminho: {d_path.max():.2f} mm")
+
+    # Atraso que minimiza o erro
+    shifts = np.linspace(0, 2.0, 1000)
+    errs = [np.mean(np.linalg.norm(interp_dk(ts_desired + s)[:, :3] - desired_poses[:, :3], axis=1)) for s in shifts]
+    best = shifts[np.argmin(errs)]
+    print(f"Atraso estimado: {best:.2f} s")
+    print(f"Erro médio com atraso compensado: {min(errs):.2f} mm")
 
     # Plots, 4 subplots nuuma figura
     fig, axs = plt.subplots(2, 2, figsize=(12, 8))
 
     # Trajetória no plano XY
     axs[0, 0].plot(desired_poses[:, 0], desired_poses[:, 1], 'r--', label='Desejado')
-    axs[0, 0].plot(calc_poses_at_ts[:, 0], calc_poses_at_ts[:, 1], 'b-', label='Executado (FK)')
+    axs[0, 0].plot(calc_poses_at_ts[:, 0], calc_poses_at_ts[:, 1], 'b-', label='Executado (dk)')
     axs[0, 0].set_title("Trajetória no plano XY")
     axs[0, 0].set_xlabel("X (mm)")
     axs[0, 0].set_ylabel("Y (mm)")
@@ -67,7 +81,7 @@ def post_processing(file_path="traj_run_slow1.npz"):
     axs[0, 1].set_ylabel("Erro (mm)")
     axs[0, 1].grid(True)
 
-    # Gráfico 3: Decomposição do Erro por Eixo (X, Y, Z)
+    # Decomposição do Erro por Eixo (X, Y, Z)
     axs[1, 0].plot(ts_desired, err_total[:, 0], label='Erro X')
     axs[1, 0].plot(ts_desired, err_total[:, 1], label='Erro Y')
     axs[1, 0].plot(ts_desired, err_total[:, 2], label='Erro Z')
@@ -77,7 +91,7 @@ def post_processing(file_path="traj_run_slow1.npz"):
     axs[1, 0].legend()
     axs[1, 0].grid(True)
 
-    # Gráfico 4: Erros de Orientação (Roll, Pitch, Yaw)
+    # Erros de Orientação (Roll, Pitch, Yaw)
     axs[1, 1].plot(ts_desired, err_total[:, 3], label='Roll')
     axs[1, 1].plot(ts_desired, err_total[:, 4], label='Pitch')
     axs[1, 1].plot(ts_desired, err_total[:, 5], label='Yaw')
@@ -87,8 +101,8 @@ def post_processing(file_path="traj_run_slow1.npz"):
     axs[1, 1].legend()
     axs[1, 1].grid(True)
 
-    plt.tight_layout()
     plt.show()
+
 
 if __name__ == "__main__":
     # Mudar aqui o nome do ficheiro a carregar
