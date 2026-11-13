@@ -1,42 +1,84 @@
+import time
 import numpy as np
+from xarm.wrapper import XArmAPI
+from trajectory_def import traj, T as T_SWING
 
-# global trajectory parameters
-# total nominal duration in seconds
-T = 3.0
-# reference yaw in degrees, transverse direction of the y axis
-PSI = 90.0
+# robot's IP address
+IP = '192.168.1.158'
 
-def traj(t):
-    # normalizes time to the interval [0, 1]
-    s = np.clip(t / T, 0.0, 1.0)
+# time expansion factor
+SLOW = 1.0
 
-    # goes from 0 to 1 with zero velocity at both ends, so signals driven by it start and finish without bumps
-    s_smooth = 0.5 * (1.0 - np.cos(np.pi * s))
+# robot's maximum velocity in mm/s
+V_MAX = 200
 
-    # center of the LITE 6 Workspace - reference point around which the swing is built
-    x_center = 260.0
-    y_center = 0.0
-    z_center = 140.0
+# mm blending radius in mm
+RADIUS = 5
 
-    # lateral sweep
-    y_offset = 160.0 * np.cos(np.pi * s)
+# number of waypoints for the trajectory
+N = 20
 
-    # depth x: half sine wave reaching peak forward extension at midpoint
-    x_offset = 50.0 * np.sin(np.pi * s)
+# execution real time
+T = T_SWING * SLOW
 
-    # vertical profile - parabola swing
-    z_height = z_center + 110.0 * (2.0 * s_smooth - 1.0)**2
+# N time samples equally spaced out between [0, T]
+ts = np.linspace(0, T, N)
 
-    # final cartesian coordenates in mm
-    x = x_center + x_offset
-    y = y_center + y_offset
-    z = z_height
+# pose at each instant. t is divided by SLOW to go back to the trajectory's "nominal" time, the path in space is the same, only the pace changes
+# P is initialized like (N, 6) - columns x, y, z, roll, pitch, yaw
+P = np.array([traj(t / SLOW) for t in ts])
+print(P)
 
-    # stable and expressive orientation - avoids violent wrist rotations by keeping roll fixed and varying pitch and yaw smoothly
-    roll = 180.0
-    # slight tilt of the club during the up and down motion
-    pitch = 10.0 * np.sin(np.pi * s)
-    # smooth adaptation to the direction of the arc
-    yaw = PSI + 20.0 * np.cos(np.pi * s)
+# open connection to the robot through IP
+arm = XArmAPI(IP)
+# clear pending warnings from previous runs
+arm.clean_warn()
+# clear pending errors from previous runs
+arm.clean_error()
+# power the joints motors
+arm.motion_enable(True)
+# setting robot's mode and state
+arm.set_mode(0)
+arm.set_state(0)
 
-    return np.array([x, y, z, roll, pitch, yaw])
+# the robot positions itself slowly in the initial point
+move = arm.set_position(*P[0], speed=50, mvacc=200, wait=True)
+assert move == 0, f"Error setting robot into initial position: {move}"
+
+# time step between waypoints
+dt = ts[1] - ts[0]
+# the real pose log will be stored in this array
+log = []
+# time reference for log
+t0 = time.time()
+
+for i in range(1, N):
+    # distance between consecutive waypoints - the angles are left out because they are in different units
+    dist = np.linalg.norm(P[i, :3] - P[i-1, :3])
+    # average speed needed to cover the segment in dt seconds
+    speed = float(np.clip(dist / dt, 20, V_MAX))
+    
+    # moving through trajectory - wait=FALSE keeps the robot moving without stopping between points - radius=RADIUS rounds corners into smooth curves
+    move = arm.set_position(*P[i], speed=speed, mvacc=2000, radius=RADIUS, wait=False)
+    
+    # non zero code means the command was rejected
+    if move != 0:
+        print(f"Failed at {i}, code {move}")
+        # state 4 stops the movement of the robot
+        arm.set_state(4)
+        break
+
+# while the robot is moving, sample the pose at ~50Hz 
+# get_position() returns (x, y, z, roll, pitch, yaw)
+while arm.get_is_moving():
+    log.append((time.time() - t0, *arm.get_position()[1]))
+    time.sleep(0.02)
+    
+# compare the real duration with the expected one
+print("Real duration:", time.time() - t0, "s (expected ≈", T, "s)")
+
+# save the log for analysis
+np.save("pose_real.npy", np.array(log))
+
+# close connection to the robot
+arm.disconnect()

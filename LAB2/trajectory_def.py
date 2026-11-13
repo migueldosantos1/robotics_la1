@@ -1,55 +1,42 @@
 import numpy as np
 
-# Parâmetros globais da trajetória da tacada
-T = 5.0       # Duração total reduzida (mais rápido, mas controlado)
-PSI = 0    # Direção transversal (eixo Y)
+# global trajectory parameters
+# total nominal duration in seconds
+T = 3.0
+# reference yaw in degrees, transverse direction of the y axis
+PSI = 90.0
 
-def traj_base(t):
-    """
-    Gera uma trajetória 3D expressiva de golfe (Direita -> Impacto -> Esquerda)
-    otimizada com perfis temporais- suaves para suportar velocidades mais elevadas.
-    """
-    # Normalizar o tempo para o intervalo [0, 1]
+def traj(t):
+    # normalizes time to the interval [0, 1]
     s = np.clip(t / T, 0.0, 1.0)
 
-    # --- PERFIL TEMPORAL SUAVE (Cosseno Acoplado) ---
-    # Garanta transições de velocidade e aceleração contínuas nos extremos (sem solavancos)
+    # goes from 0 to 1 with zero velocity at both ends, so signals driven by it start and finish without bumps
     s_smooth = 0.5 * (1.0 - np.cos(np.pi * s))
 
-    # --- CENTRO DO ESPAÇO DE TRABALHO DO LITE6 ---
-    x_center = 320.0
+    # center of the LITE 6 Workspace - reference point around which the swing is built
+    x_center = 260.0
     y_center = 0.0
     z_center = 140.0
 
-    # --- 1. VARRIMENTO LATERAL (Y): Da Direita (+160mm) para a Esquerda (-160mm) ---
-    # Usamos s direto para fazer a viagem completa de um lado ao outro de forma fluida
-    y_offset = 220.0 * np.cos(np.pi * s)
+    # lateral sweep
+    y_offset = 160.0 * np.cos(np.pi * s)
 
-    # --- 2. PROFUNDIDADE (X): O "Loop" do Taco ---
-    # Afasta-se no início/fim e projeta-se para a frente no momento exato do impacto (s = 0.5)
-    x_offset = 100.0 * np.sin(np.pi * s)
+    # depth x: half sine wave reaching peak forward extension at midpoint
+    x_offset = 50.0 * np.sin(np.pi * s)
 
-    # --- 3. PERFIL VERTICAL (Z): Parábola do Balanço ---
-    # Mais alto nas pontas, atingindo o ponto mais baixo (impacto) no centro
+    # vertical profile - parabola swing
     z_height = z_center + 110.0 * (2.0 * s_smooth - 1.0)**2
 
-    # Coordenadas cartesianas finais
+    # final cartesian coordenates in mm
     x = x_center + x_offset
     y = y_center + y_offset
     z = z_height
 
-    # --- 4. ORIENTAÇÃO ESTÁVEL E EXPRESSIVA ---
-    # Evita rotações violentas do pulso mantendo o roll fixo e variando o pitch/yaw de forma suave
+    # stable and expressive orientation - avoids violent wrist rotations by keeping roll fixed and varying pitch and yaw smoothly
     roll = 180.0
-    pitch = 10.0 * np.sin(np.pi * s)        # Inclinação leve do taco na subida e descida
-    yaw = PSI + 20.0 * np.cos(np.pi * s)    # Adaptação suave à direção do arco
+    # slight tilt of the club during the up and down motion
+    pitch = 10.0 * np.sin(np.pi * s)
+    # smooth adaptation to the direction of the arc
+    yaw = PSI + 20.0 * np.cos(np.pi * s)
 
     return np.array([x, y, z, roll, pitch, yaw])
-
-ALPHA = -90.0
-
-def traj(t):
-    x, y, z, roll, pitch, yaw = traj_base(t)
-    c, s = np.cos(np.radians(ALPHA)), np.sin(np.radians(ALPHA))
-    yaw = (yaw + ALPHA + 180.0) % 360.0 - 180.0
-    return np.array([c*x - s*y, s*x + c*y, z, roll, pitch, yaw])

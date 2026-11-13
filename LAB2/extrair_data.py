@@ -23,12 +23,11 @@ from trajectory_def import traj, T
 # robot IP address
 IP    = '192.168.1.158'
 # number of trajectory points used for the Task 4 IK test
-N_IK  = 100
+N_IK  = 20
 # deg/s, joint speed during the FK validation moves
 SPEED = 20
 # time stretching factors
-SLOW_LEVELS = [
-    1]
+SLOW_LEVELS = [5, 2, 1]
 # number of waypoints sent to the robot for the swing
 N_WP    = 20
 # mm/s, TCP speed ceiling
@@ -76,7 +75,6 @@ def collect_ik(arm):
             print("IK failed (code", code, ") at", np.round(pose, 1))
 
     q_ik = np.array(q_ik)
-    q_ik = np.unwrap(q_ik, axis=0)
     np.savez("ik_data.npz", ts=ts, poses=poses, q_ik=q_ik, codes=np.array(codes))
     print("Saved ik_data.npz")
     
