@@ -17,7 +17,7 @@
 
 - `ik_data.npz`: Contém ts (instantes), poses (poses desejadas), q_ik (juntas da IK, graus) e codes (código de retorno da IK por ponto).
 - `ik_errors.npz`: Contém ts, desired, calc (DK sobre as juntas da IK) e err (calc − desired, mm e graus).
-- `traj_run_slow1.npz`: Contém ts e desired (os 20 waypoints enviados) e log (registo da execução, uma linha por amostra).
+- `traj_run_slowX.npz`: Contém ts e desired (os 20 waypoints enviados) e log (registo da execução, uma linha por amostra).
 - `fk_validation.npy`: Contém Uma linha por configuração, com colunas q(6); pose do robô(6); pose da DK(6); diferença(6).
 
 Unidades: posições em mm e ângulos em graus.
