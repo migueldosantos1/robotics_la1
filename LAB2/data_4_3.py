@@ -1,8 +1,8 @@
 '''
 Script para analisar o erro DK - robô
 
-Definido entre a DK aplicada às juntas reportadas pelo robô e a posição 
-reportada pelo robô - permite isolar o erro provocado pelo modelo
+Definido entre a DK aplicada às juntas reportadas pelo robô
+e a posição reportada pelo robô - permite isolar o erro provocado pelo modelo
 que estamos a usar do modelo interno do robô
 
 '''
@@ -17,22 +17,19 @@ def wrap(a):
     return (np.asarray(a, float) + 180.0) % 360.0 - 180.0
 
 def summarize(err, label):
-
     pos = np.linalg.norm(err[:, :3], axis=1)
-
     print(f"\n - {label} (N = {len(err)})")
     print(f"Erro de posição médio: {pos.mean():.3f} mm")
     print(f"Erro de posição máximo: {pos.max():.3f} mm")
     print(f"Vetor médio (x, y, z): {err[:, :3].mean(0)} mm")
-
+    print(f"Desvio-padrão: {err[:, :3].std(0)} mm")
     for i, n in enumerate(["roll", "pitch", "yaw"]):
         e = np.abs(err[:, 3 + i])
-        print(f"Erro de {n}: média {e.mean():.4f} graus; máx {e.max():.4f} graus")
+        print(f"Erro de {n}: média {e.mean():.4f}°; máx {e.max():.4f}°")
     return pos
 
-# Durante a execução, usa as amostras brutas do log (sem a interpolação do data_4_1)
+# Durante a execução: usa as amostras BRUTAS do log (sem interpolar)
 def analyze_run(file_path="traj_run_slow1.npz", still_thr=10.0):
-
     log = np.load(file_path)["log"]
     t = log[:, 0]
     robot = log[:, 1:7]
@@ -48,20 +45,15 @@ def analyze_run(file_path="traj_run_slow1.npz", still_thr=10.0):
     v = np.full(len(t), np.nan)
     v[:-k] = np.linalg.norm(robot[k:, :3] - robot[:-k, :3], axis=1) / (t[k:] - t[:-k])
 
-    # Secção para descobrir os valores iniciais e finais (quando o robô está praticamente parado)
-    ik = np.load("ik_errors.npz")["err"]
-
-    print("\n - Robô quase parado:")
-    print("Início - DK-robô:", err[:10, :3].mean(0), "; IK:", ik[0, :3])
-
-    initial = np.linalg.norm(err[:10, :3], axis=1)
-    print(f"Médio: {initial.mean():.3f} mm")
-    print(f"Máximo: {initial.max():.3f} mm")
-
-    print("Fim - DK-robô:", err[-10:, :3].mean(0), "; IK:", ik[-1, :3])
-    final = np.linalg.norm(err[-10:, :3], axis=1)
-    print(f"Médio: {final.mean():.3f} mm")
-    print(f"Máximo: {final.max():.3f} mm")
+    still = v < still_thr
+    moving = v >= still_thr
+    if still.any():
+        print(f"\nCom o robô (quase) parado, v < {still_thr:.0f} mm/s (N = {still.sum()}):")
+        print(f"  erro médio {pos[still].mean():.3f} mm | vetor médio {err[still, :3].mean(0)}")
+    if moving.any():
+        print(f"Em movimento (N = {moving.sum()}): erro médio {pos[moving].mean():.3f} mm")
+        c = np.corrcoef(v[moving], pos[moving])[0, 1]
+        print(f"Correlação erro-velocidade (em movimento): {c:.2f}")
 
     fig, axs = plt.subplots(1, 3, figsize=(15, 4.5))
     for i, n in enumerate(["X", "Y", "Z"]):
@@ -85,11 +77,11 @@ def compare_with_ik(err_dk_robot, path="ik_errors.npz"):
     ik_err = np.load(path)["err"]
     m_ik = ik_err[:, :3].mean(0)
     m_rob = err_dk_robot[:, :3].mean(0)
-    print("\n - Vetor médio do erro (x, y, z), em mm:")
-    print(f"IK  (DK - desejada): {m_ik}")
-    print(f"DK - pose do robô  : {m_rob}")
+    print("\nVetor médio do erro (x, y, z), em mm:")
+    print(f"  IK  (DK - desejada): {m_ik}")
+    print(f"  DK - pose do robô  : {m_rob}")
     cos = m_ik @ m_rob / (np.linalg.norm(m_ik) * np.linalg.norm(m_rob))
-    print(f"Cosseno entre os dois vetores: {cos:.2f}  (próximo de 1 => mesma origem)")
+    print(f"  Cosseno entre os dois vetores: {cos:.2f}  (próximo de 1 => mesma origem)")
 
 if __name__ == "__main__":
     err_run = analyze_run("traj_run_slow1.npz")
