@@ -14,11 +14,11 @@ for j in range(6):
     ax.plot(ts, q[:, j], label=f"J{j+1}")
 
 # plot legends
-ax.set_title(f"Joint variables from built-in IK (N = {len(ts)})")
-ax.set_xlabel("Time (s)")
-ax.set_ylabel("Angles (degrees)")
+ax.set_title(f"Ângulos de juntas da built-in IK")
+ax.set_xlabel("Tempo (s)", fontsize=12)
+ax.set_ylabel("Ângulo (graus)", fontsize=12)
 ax.grid(True)
-ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=8)
+ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=12)
 plt.tight_layout()
 plt.savefig("juntas_ik.png", dpi=200)
 

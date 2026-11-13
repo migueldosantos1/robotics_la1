@@ -16,7 +16,7 @@ V_MAX = 200
 RADIUS = 5
 
 # number of waypoints for the trajectory
-N = 20
+N = 100
 
 # execution real time
 T = T_SWING * SLOW

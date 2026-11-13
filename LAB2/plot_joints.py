@@ -22,13 +22,13 @@ for ax, f in zip(axs[:, 0], files):
         ax.plot(t, q_actual[:, j], label=f"J{j+1}")
         
     # dashed vertical line at the expected end, to compare with when the log really ends
-    ax.axvline(t_exp, color="k", linestyle="--", linewidth=1, label=f"Expected finish ({t_exp:.0f} s)")
+    ax.axvline(t_exp, color="k", linestyle="--", linewidth=1, label=f"Final esperado ({t_exp:.0f} s)")
     # plot legends
-    ax.set_title(f"{os.path.basename(f)}  (N = {len(d['ts'])})")
-    ax.set_xlabel("Time (s)")
-    ax.set_ylabel("Angle (degrees)")
+    ax.set_title(f"{os.path.basename(f)}")
+    ax.set_xlabel("Tempo (s)", fontsize=12)
+    ax.set_ylabel("Ângulo (graus)", fontsize=12)
     ax.grid(True)
-    ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=8)
+    ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=12)
 
     # collect the samples
     for ti, qi in zip(t, q_actual):
